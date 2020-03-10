@@ -463,4 +463,6 @@ Now, when you click the Add to cart button you the number in the cart button sho
 
 And when you click it the cart modal should contain the items you've added.
 
+## Limitations
 
+In this guide we've only covered adding products to cart. There is much more we'd need to do to make the cart functional, such as editing item quantities, removing items entirely and clearing the cart. Also, when we try to add the same product multiple times the quantity remains at 1, ideally we'd like this action to update the quantity too. The techniques used in this guide can be applied to all of these actions to make the cart more functional.
