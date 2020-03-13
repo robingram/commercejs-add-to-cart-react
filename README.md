@@ -2,14 +2,14 @@
 
 ## Overview
 
-In the previous guide, [Listing products with React.js and Commerce.js](https://github.com/robingram/commercejs-list-products-react) we created a simple list of the products we'd created in the Chec Dashboard. Next we're going to look at how to display the contents of the cart and add those products to it. Finally, we'll add Upsells to the cart to recommend related products to our site visitors.
+In the previous guide, [Listing products with React.js and Commerce.js](https://github.com/robingram/commercejs-list-products-react) we created a simple list of the products we'd created in the Chec Dashboard. Next we're going to look at how to display the contents of the cart and add those products to it. Finally, we'll add simulated recommended products to the cart to encourage further purchases.
 
 In this guide we'll:
 
 * Retrieve a cart from Commerce.js and make it available to our app
 * Add React components to display the contents of the cart
 * Extend the existing products list to allow products to be added to the cart
-* Display upsell products in the cart
+* Display simulated recommended products products in the cart
 
 You can see a [live demo]() of what we'll produce.
 
@@ -119,7 +119,7 @@ function App() {
 export default App;
 ```
 
-The `Nav` component is new and we'll create that shortly. It will include a button to toggle a modal dialogue that contains the cart itself. First though, lets look at how we're handling the cart state.
+The `Nav` component is new and we'll create that shortly. It will include a button to toggle a modal dialogue that contains the cart itself. First though, let's look at how we're handling the cart state.
 
 We begin by importing the cart context and Commerce.js SDK from the files we created earlier. Next we use React's `useState` function to create the `cart` state and a function for setting that state.
 
@@ -127,7 +127,7 @@ We begin by importing the cart context and Commerce.js SDK from the files we cre
 const [cart, setCart] = useState();
 ```
 
-Next we retrieve a cart object using the SDK and set it to the `cart` state. We've put this into a `useEffect` call. This can be thought of as the equivalen of `componentDidMount` which we saw in `ProductList` except for use in *functional* components, so this will be called when the component is rendered.
+Next we retrieve a cart object using the SDK and set it to the `cart` state. We've put this into a `useEffect` call. This can be thought of as the equivalent of `componentDidMount` which we saw in `ProductList` except for use in *functional* components, so this will be called when the component is rendered.
 
 ```
 useEffect(() => {
@@ -173,7 +173,7 @@ The cart with products in will look something like the image below.
 
 ![Cart with products](images/cart_with_products.png)
 
-Lets build that hierarchy starting with the nav bar.
+Let's build that hierarchy starting with the nav bar.
 
 *src/components/Nav.js*
 ```
@@ -307,7 +307,7 @@ export default CartProductRow;
 
 The `line_item` has many properties that are similar to a standard product with the addition of a `quantity` and `line_total`, which is the price of the product multiplied by the quantity.
 
-This cart isn't very interesting yet so lets look at how to add products to it.
+This cart isn't very interesting yet so let's look at how to add products to it.
 
 ## Adding products to the cart
 
@@ -466,3 +466,99 @@ And when you click it the cart modal should contain the items you've added.
 ## Limitations
 
 In this guide we've only covered adding products to cart. There is much more we'd need to do to make the cart functional, such as editing item quantities, removing items entirely and clearing the cart. Also, when we try to add the same product multiple times the quantity remains at 1, ideally we'd like this action to update the quantity too. The techniques used in this guide can be applied to all of these actions to make the cart more functional.
+
+## Adding "Recommended Products"
+
+A common feature of shopping carts is a "recommended products" section which is designed to show shoppers other items that they may like in order to encourage further purchases. We're going to create a very simple version of this that will simply display a product that isn't already in the cart. In reality you would want this to be more sophisticated, for example by using [machine learning](https://cloud.google.com/solutions/machine-learning/recommendation-system-tensorflow-overview).
+
+Create a `RecommendedProduct` component in `src/components/cart/RecommendedProduct.js` with this content.
+
+```
+import React, { useState, useEffect } from 'react';
+import { commerce } from '../../lib/Commerce';
+
+const RecommendedProduct = ({ cart }) => {
+  const [recommendedProduct, setRecommendedProduct] = useState(false);
+
+  const cartProductIds = cart.line_items.map(line_item => line_item.product_id);
+
+  useEffect(() => {
+    commerce.products.list().then((result) => {
+      result.data.some((product) => {
+        if (!cartProductIds.includes(product.id)) {
+          setRecommendedProduct(product);
+          return true;
+        }
+      });
+    });
+  }, [])
+
+  if (cart.total_unique_items > 0 && recommendedProduct) {
+    return (
+      <div class="container">
+        <div class="row">
+          <div class="col-md-12">
+            <i>You may also like:</i>
+          </div>
+        </div>
+        <div className="row product">
+          <div className="col-md-2">
+            <img src={recommendedProduct.media.source} alt={recommendedProduct.name} height="50" />
+          </div>
+          <div className="col-md-8 product-detail">
+            <h5>{recommendedProduct.name}</h5>
+          </div>
+          <div className="col-md-2 cart-product-price">
+            {recommendedProduct.price.formatted_with_symbol}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+    </>
+  );
+}
+
+export default RecommendedProduct;
+```
+
+Let's go through what this is doing.
+
+First it is setting a recommended product to state so that the component will re-render when it changes. The default value is `false`.
+
+```
+const [recommendedProduct, setRecommendedProduct] = useState(false);
+```
+
+Next it is creating a list of the IDs of products that are already in the cart.
+
+```
+const cartProductIds = cart.line_items.map(line_item => line_item.product_id);
+```
+
+Then it is retrieving the list of products and searching it for a product that isn't in the cart so that we don't recommend something that the shopper has already added. This is happening in a `useEffect` call so that it refreshes whenever the component is rendered, e.g. when the cart changes. Note the use of the `some` method on the array of products in `result.data`. `some` is useful in this case because it ends the loop the first time the function it is passed returns `true`, so we stop looping as soon as we find a product that isn't in the cart.
+
+```
+  useEffect(() => {
+    commerce.products.list().then((result) => {
+      setRecommendedProduct(false);
+      result.data.some((product) => {
+        if (!cartProductIds.includes(product.id)) {
+          setRecommendedProduct(product);
+          return true;
+        }
+      });
+    });
+  }, [])
+```
+
+Finally, if a recommended product exists, and if there are items in the cart (we don't want recommendations on empty carts) it will display the product details. In a real system you would want to implement a link to the product and an add to cart button here but we won't go that for for the purposes of this illustration.
+
+The recommendation should look something like the image below.
+
+![Cart with recommended product](images/cart_recommended_product.png)
+
+That's all we're going to cover for this guide but we hope it helps you on your way to building a functional cart with Commerce.js.
