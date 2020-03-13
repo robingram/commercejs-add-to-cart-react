@@ -11,7 +11,7 @@ In this guide we'll:
 * Extend the existing products list to allow products to be added to the cart
 * Display simulated recommended products products in the cart
 
-You can see a [live demo]() of what we'll produce.
+You can see a [live demo](http://commercejs-add-to-cart.s3-website-ap-southeast-2.amazonaws.com/) of what we'll produce.
 
 ## Requirements
 
