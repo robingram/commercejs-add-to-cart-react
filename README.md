@@ -167,7 +167,7 @@ Next we'll use the context to display the contents of the cart.
 
 ## Display the cart
 
-As mentioned above, the cart will be displayed in a modal dialog that is contained inside the `Nav` component. The component hierarchy will also include a wrapper for the entire cart, a list of cart products and a component for each line item in the cart.
+As mentioned above, the cart will be displayed in a modal dialog that is contained inside the `Nav` component. The component hierarchy will also include a wrapper for the entire cart, a list of cart products, a component for each line item in the cart and rows for the cart total and checkout button.
 
 The cart with products in will look something like the image below.
 
@@ -232,22 +232,37 @@ Next we'll create the cart component itself in the file `src/components/cart/Car
 ```
 import React, { useContext } from 'react';
 import CartProductList from './CartProductList';
+import CartCheckoutRow from './CartCheckoutRow';
+import CartTotalRow from './CartTotalRow';
 import CartContext from '../../context/CartContext';
 
 const Cart = () => {
   const { cart } = useContext(CartContext);
 
+  if (cart &&  cart.total_unique_items > 0) {
+    return (
+      <div className="container cart">
+        <CartProductList cart={cart} />
+        <CartTotalRow cart={cart} />
+        <CartCheckoutRow />
+      </div>
+    );
+  }
+
   return (
-    <CartProductList cart={cart} />
-  );
+    <div className="container cart">
+      <p>Your cart is currently empty.</p>
+    </div>
+  )
 }
 
 export default Cart;
+
 ```
 
-This again consumes the cart context and passes the `cart` object to the product list as a prop.
+This again consumes the cart context and passes the `cart` object to the product list and total row as a prop. If there are no line items yet it will render a message that the cart is empty.
 
-The cart product list will loop over the line items from the cart and render a row for each. If there are no line items yet it will render a message that the cart is empty.
+The cart product list will loop over the line items from the cart and render a row for each.
 
 *src/components/cart/CartProductList.js*
 ```
@@ -255,23 +270,11 @@ import React from 'react';
 import CartProductRow from './CartProductRow';
 
 const CartProductList = ({ cart }) => {
-  if (cart && cart.total_unique_items > 0) {
-    return (
-      <div className="container cart-products">
-        {
-          cart.line_items.map(line_item => {
-            return <CartProductRow key={line_item.id} lineItem={line_item} />
-          })
-        }
-      </div>
-    );
-  }
-
   return (
-    <div className="container cart-products">
-      <p>Your cart is currently empty.</p>
-    </div>
-  )
+    cart.line_items.map(line_item => {
+      return <CartProductRow key={line_item.id} lineItem={line_item} />
+    })
+  );
 }
 
 export default CartProductList;
@@ -306,6 +309,44 @@ export default CartProductRow;
 ```
 
 The `line_item` has many properties that are similar to a standard product with the addition of a `quantity` and `line_total`, which is the price of the product multiplied by the quantity.
+
+We also have components to display the current cart total and a checkout button.
+
+*src/components/cart/CartTotalRow.js*
+```
+import React from 'react';
+
+const CartTotalRow = ({ cart }) => {
+  return (
+    <div className="row">
+      <div className="col-md-12 text-right">
+        Total: {cart.subtotal.formatted_with_symbol}
+      </div>
+    </div>
+  );
+}
+
+export default CartTotalRow;
+```
+
+*src/components/cart/CartCheckoutRow.js*
+```
+import React from 'react';
+
+const CartCheckoutRow = () => {
+  return (
+    <div className="row">
+      <div className="col-md-12 text-right">
+        <button className="btn btn-success">
+          Checkout
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default CartCheckoutRow;
+```
 
 This cart isn't very interesting yet so let's look at how to add products to it.
 
@@ -493,9 +534,9 @@ const RecommendedProduct = ({ cart }) => {
     });
   }, [])
 
-  if (cart.total_unique_items > 0 && recommendedProduct) {
+  if (recommendedProduct) {
     return (
-      <div class="container">
+      <>
         <div class="row">
           <div class="col-md-12">
             <i>You may also like:</i>
@@ -512,7 +553,7 @@ const RecommendedProduct = ({ cart }) => {
             {recommendedProduct.price.formatted_with_symbol}
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -542,20 +583,20 @@ const cartProductIds = cart.line_items.map(line_item => line_item.product_id);
 Then it is retrieving the list of products and searching it for a product that isn't in the cart so that we don't recommend something that the shopper has already added. This is happening in a `useEffect` call so that it refreshes whenever the component is rendered, e.g. when the cart changes. Note the use of the `some` method on the array of products in `result.data`. `some` is useful in this case because it ends the loop the first time the function it is passed returns `true`, so we stop looping as soon as we find a product that isn't in the cart.
 
 ```
-  useEffect(() => {
-    commerce.products.list().then((result) => {
-      setRecommendedProduct(false);
-      result.data.some((product) => {
-        if (!cartProductIds.includes(product.id)) {
-          setRecommendedProduct(product);
-          return true;
-        }
-      });
+useEffect(() => {
+  commerce.products.list().then((result) => {
+    setRecommendedProduct(false);
+    result.data.some((product) => {
+      if (!cartProductIds.includes(product.id)) {
+        setRecommendedProduct(product);
+        return true;
+      }
     });
-  }, [])
+  });
+}, [])
 ```
 
-Finally, if a recommended product exists, and if there are items in the cart (we don't want recommendations on empty carts) it will display the product details. In a real system you would want to implement a link to the product and an add to cart button here but we won't go that for for the purposes of this illustration.
+Finally, if a recommended product exists it will display the product details. In a real system you would want to implement a link to the product and an add to cart button here but we won't go that for for the purposes of this illustration.
 
 The recommendation should look something like the image below.
 

@@ -17,9 +17,9 @@ const RecommendedProduct = ({ cart }) => {
     });
   }, [])
 
-  if (cart.total_unique_items > 0 && recommendedProduct) {
+  if (recommendedProduct) {
     return (
-      <div class="container">
+      <>
         <div class="row">
           <div class="col-md-12">
             <i>You may also like:</i>
@@ -36,7 +36,7 @@ const RecommendedProduct = ({ cart }) => {
             {recommendedProduct.price.formatted_with_symbol}
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
