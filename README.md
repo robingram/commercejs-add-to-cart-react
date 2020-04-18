@@ -596,10 +596,132 @@ useEffect(() => {
 }, [])
 ```
 
-Finally, if a recommended product exists it will display the product details. In a real system you would want to implement a link to the product and an add to cart button here but we won't go that for for the purposes of this illustration.
+Finally, if a recommended product exists it will display the product details.
 
 The recommendation should look something like the image below.
 
 ![Cart with recommended product](images/cart_recommended_product.png)
+
+### Add the recommended product to the cart
+
+Seeing a recommended product is great but it would be even better to be able to add it to the cart directly. We'll implement an Add To Cart button for this component that will look something like this:
+
+![Add recommended product to cart](images/recommended_add.png)
+
+Our add to cart functionality currently resides on the `ProductList` component and isn't accessible from the cart because it is in a different part of the component hierarchy. To address this we'll promote the functionality to the `App` component and add it to our `CartContext`.
+
+First add an empty function to the default cart context.
+
+*src/context/CartContext.js*
+```
+const CartContext = React.createContext({
+  cart: {},
+  setCart: () => {},
+  addProductToCart: () => {},
+});
+```
+
+Then implement the function in the `App` component, just after the existing `useState` call. The body of this function will be the same as the existing function in the product list.
+
+*src/App.js*
+```
+const [cart, setCart] = useState();
+
+const addProductToCart = (productId) => {
+  commerce.cart.add(productId, 1)
+    .then(result => {
+      setCart(result.cart);
+      alert("Product added to cart");
+    });
+}
+```
+
+Pass this down to other components in the context provider.
+
+*src/App.js*
+```
+<CartContext.Provider value={{cart, setCart, addProductToCart}}>
+  <Nav />
+  <div className="container">
+    <h2>Products</h2>
+  </div>
+  <ProductList />
+</CartContext.Provider>
+```
+
+In our existing `ProductList` we can now remove the old fuction and call this new one from the context.
+
+*src/components/ProductList.js*
+```
+handleAddProduct(productId) {
+  this.context.addProductToCart(productId);
+}
+```
+
+Adding products to the cart from the main product list should now be working as before so we can move on to implementing it for the recommended product.
+
+In the `Cart` component, reference the new function from the context and pass it down to the `RecommendedProduct` as a prop, alongside the cart object.
+
+*src/components/cart/Cart.js*
+```
+const { cart, addProductToCart } = useContext(CartContext);
+
+if (cart &&  cart.total_unique_items > 0) {
+  return (
+    <div className="container cart">
+      <CartProductList cart={cart} />
+      <CartTotalRow cart={cart} />
+      <RecommendedProduct cart={cart} addProductToCart={addProductToCart} />
+      <CartCheckoutRow />
+    </div>
+  );
+}
+```
+
+Now import the button component from reactstrap in `RecommendedProduct`.
+
+*src/components/cart/RecommendedProduct.js*
+```
+import { Button } from 'reactstrap';
+```
+
+And add a button and handler function when there is a recommended product available.
+
+*src/components/cart/RecommendedProduct.js*
+```
+if (recommendedProduct) {
+  const handleAddProduct = e => {
+    e.preventDefault();
+    addProductToCart(recommendedProduct.id);
+    setRecommendedProduct(null)
+  }
+
+  return (
+    <>
+      <div class="row">
+        <div class="col-md-12">
+          <i>You may also like:</i>
+        </div>
+      </div>
+      <div className="row product">
+        <div className="col-md-2">
+          <img src={recommendedProduct.media.source} alt={recommendedProduct.name} height="50" />
+        </div>
+        <div className="col-md-8 product-detail">
+          <h5>{recommendedProduct.name}</h5>
+        </div>
+        <div className="col-md-2 cart-product-price">
+          {recommendedProduct.price.formatted_with_symbol}
+          <Button color="success" onClick={handleAddProduct} size="sm">
+            Add
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+}
+```
+
+Just like in the product list this calls the `addProductToCart` function but in this case it also hides the existing recommended product because we don't want it to still be displayed when it is in the cart.
 
 That's all we're going to cover for this guide but we hope it helps you on your way to building a functional cart with Commerce.js.
