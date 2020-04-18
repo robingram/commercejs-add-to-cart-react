@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Button } from 'reactstrap';
 import { commerce } from '../../lib/Commerce';
 
-const RecommendedProduct = ({ cart }) => {
+const RecommendedProduct = ({ cart, addProductToCart }) => {
   const [recommendedProduct, setRecommendedProduct] = useState(false);
 
   const cartProductIds = cart.line_items.map(line_item => line_item.product_id);
@@ -18,6 +19,12 @@ const RecommendedProduct = ({ cart }) => {
   }, [])
 
   if (recommendedProduct) {
+    const handleAddProduct = e => {
+      e.preventDefault();
+      addProductToCart(recommendedProduct.id);
+      setRecommendedProduct(null)
+    }
+
     return (
       <>
         <div class="row">
@@ -34,6 +41,9 @@ const RecommendedProduct = ({ cart }) => {
           </div>
           <div className="col-md-2 cart-product-price">
             {recommendedProduct.price.formatted_with_symbol}
+            <Button color="success" onClick={handleAddProduct} size="sm">
+              Add
+            </Button>
           </div>
         </div>
       </>

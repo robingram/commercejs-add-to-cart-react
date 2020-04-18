@@ -6,14 +6,14 @@ import RecommendedProduct from './RecommendedProduct';
 import CartContext from '../../context/CartContext';
 
 const Cart = () => {
-  const { cart } = useContext(CartContext);
+  const { cart, addProductToCart } = useContext(CartContext);
 
   if (cart &&  cart.total_unique_items > 0) {
     return (
       <div className="container cart">
         <CartProductList cart={cart} />
         <CartTotalRow cart={cart} />
-        <RecommendedProduct cart={cart} />
+        <RecommendedProduct cart={cart} addProductToCart={addProductToCart} />
         <CartCheckoutRow />
       </div>
     );

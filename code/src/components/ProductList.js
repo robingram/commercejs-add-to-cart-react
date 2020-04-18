@@ -15,11 +15,7 @@ class ProductList extends Component {
   }
 
   handleAddProduct(productId) {
-    commerce.cart.add(productId, 1)
-      .then(result => {
-        this.context.setCart(result.cart);
-        alert("Product added to cart");
-      });
+    this.context.addProductToCart(productId);
   }
 
   componentDidMount() {

@@ -2,6 +2,7 @@ import React from 'react';
 
 const CartContext = React.createContext({
   cart: {},
-  setCart: () => {}
+  setCart: () => {},
+  addProductToCart: () => {},
 });
 export default CartContext;
